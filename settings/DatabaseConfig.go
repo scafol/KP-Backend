@@ -1,35 +1,31 @@
 package settings
 
 import (
-	"database/sql"
-	"fmt"
-	_ "github.com/lib/pq"
+	"Golang-Echo-MVC-Pattern/entity"
+	"log"
+
+	"github.com/jinzhu/gorm"
 )
 
 type DatabaseConfig struct{}
 
-const (
-	host     = ""
-	dbname   = ""
-	user     = ""
-	password = ""
-	schema   = ""
-)
 
-// Postgresql Db Config
-func (DatabaseConfig DatabaseConfig) GetDatabaseConfig() *sql.DB {
-	psqlInfo := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable&search_path=%s", user, password, host, dbname, schema)
-	db, err := sql.Open("postgres", psqlInfo)
-
+// MySql Db Config
+func (DatabaseConfig DatabaseConfig) GetDatabaseConfig() *gorm.DB {
+	DB, err := gorm.Open("mysql", "root:@tcp(127.0.0.1:3306)/discussion_crud?parseTime=true")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	err = db.Ping()
+	DB.Debug().AutoMigrate(
+		entity.User{},
+		entity.Discussion{},
+		entity.Catagory{},
+	)
 
-	if err != nil {
-		panic(err)
-	}
+	DB.Model(&entity.Discussion{}).AddForeignKey("user_id", "user(id)", "CASCADE", "CASCADE")
+	DB.Model(&entity.Discussion{}).AddForeignKey("catagory_id", "catagory(id)", "CASCADE", "CASCADE")
+	DB.Model(&entity.Catagory{}).AddForeignKey("user_id", "user(id)", "CASCADE", "CASCADE")
 
-	return db
+	return DB
 }

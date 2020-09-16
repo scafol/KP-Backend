@@ -24,3 +24,5 @@ func (ExampleModel ExampleModel) GetPosts() []entity.ExampleEntity {
 
 	return posts
 }
+
+
