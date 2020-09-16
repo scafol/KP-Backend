@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"EchoAPISample/controller"
-	"Golang-Echo-MVC-Pattern/model"
-	"github.com/labstack/echo"
 	"net/http"
+
+	"github.com/labstack/echo"
+	"github.com/scafol/KP-Backend/model"
+	"github.com/scafol/KP-Backend/responsegraph"
 )
 
 type ExampleController struct {
@@ -14,7 +15,7 @@ type ExampleController struct {
 // Get Example Controller
 func (ExampleController ExampleController) GetPostsController(c echo.Context) error {
 	posts := ExampleController.model.GetPosts()
-	res := controller.ResponseGeneric{
+	res := responsegraph.ResponseGeneric{
 		Status:  "Success",
 		Message: "Posts Loaded",
 		Data:    posts,

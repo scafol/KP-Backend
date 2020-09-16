@@ -1,8 +1,8 @@
 package model
 
 import (
-	"Golang-Echo-MVC-Pattern/entity"
-	"Golang-Echo-MVC-Pattern/settings"
+	"github.com/scafol/KP-Backend/entity"
+	"github.com/scafol/KP-Backend/settings"
 )
 
 type ExampleModel struct {

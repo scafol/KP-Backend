@@ -1,35 +1,25 @@
 package settings
 
 import (
-	"database/sql"
 	"fmt"
-	_ "github.com/lib/pq"
+
+	"github.com/scafol/KP-Backend/entity"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type DatabaseConfig struct{}
 
-const (
-	host     = ""
-	dbname   = ""
-	user     = ""
-	password = ""
-	schema   = ""
-)
-
-// Postgresql Db Config
-func (DatabaseConfig DatabaseConfig) GetDatabaseConfig() *sql.DB {
-	psqlInfo := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable&search_path=%s", user, password, host, dbname, schema)
-	db, err := sql.Open("postgres", psqlInfo)
-
+// GetDatabaseConnection - create database object
+func (DatabaseConfig DatabaseConfig) GetDatabaseConnection() *gorm.DB {
+	dsn := GoDotEnvVariable("CONN_STRING")
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		fmt.Println("Error : ", err.Error())
 	}
-
-	err = db.Ping()
-
-	if err != nil {
-		panic(err)
-	}
-
-	return db
+	database.Debug().AutoMigrate(
+		&entity.User{},
+		&entity.Category{},
+	)
+	return database
 }
