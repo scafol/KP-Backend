@@ -2,18 +2,25 @@ package routes
 
 import (
 	"Golang-Echo-MVC-Pattern/controller"
+
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 )
 
 type Routing struct {
-	example controller.ExampleController
-	user controller.UserController
-	catagory controller.CatagoryController
+	example    controller.ExampleController
+	user       controller.UserController
+	catagory   controller.CatagoryController
 	discussion controller.DiscussionController
 }
 
 func (Routing Routing) GetRoutes() *echo.Echo {
 	e := echo.New()
+
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "method=${method}, uri=${uri}, status=${status}\n",
+	}))
+
 	e.GET("/posts/", Routing.example.GetPostsController)
 
 	// users
@@ -27,6 +34,13 @@ func (Routing Routing) GetRoutes() *echo.Echo {
 
 	// Discussion
 	e.POST("/discussion/", Routing.discussion.AddDiscussion)
+	e.POST("/discussion/first/", Routing.discussion.AddDiscussionFirst)
+	e.POST("discussion/second/", Routing.discussion.AddDiscussionSecond)
+	e.GET("/discussion/", Routing.discussion.GetAllDiscussion)
+	e.GET("/discussion/:discussionId", Routing.discussion.GetDiscussionDetailById)
+	e.POST("/discussion/upload", Routing.discussion.AddFilesImagesDiscussion)
+	e.PUT("/discussion/:discussionId", Routing.discussion.EditDiscussion)
+	e.DELETE("/discussion/:discussionId", Routing.discussion.DeleteDiscussionById)
 
 	return e
 }

@@ -6,8 +6,16 @@ import (
 	"log"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/spf13/viper"
 )
 
+func init() {
+	viper.SetConfigFile("settings/config.json")
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 	// Database
@@ -16,7 +24,7 @@ func main() {
 
 	// Starting server
 	echo := routes.Routing.GetRoutes(routes.Routing{})
-	err := echo.Start(":1337")
+	err := echo.Start(":" + viper.GetString("port.router"))
 	if err != nil {
 		log.Fatal(err)
 	}
