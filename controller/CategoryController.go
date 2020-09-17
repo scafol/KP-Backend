@@ -53,10 +53,10 @@ func (CategoryController CategoryController) FindCategory(c echo.Context) error 
 	return c.JSON(http.StatusOK, res)
 }
 
-// UpdateCategory - Update Category
+// EditCategory - Update Category
 // PUT /category/{id}
 // Update Category base on id
-func (CategoryController CategoryController) UpdateCategory(c echo.Context) error {
+func (CategoryController CategoryController) EditCategory(c echo.Context) error {
 	var input entity.Category
 
 	id := c.Param("id")

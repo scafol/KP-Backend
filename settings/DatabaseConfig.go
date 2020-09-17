@@ -20,6 +20,8 @@ func (DatabaseConfig DatabaseConfig) GetDatabaseConnection() *gorm.DB {
 	database.Debug().AutoMigrate(
 		&entity.User{},
 		&entity.Category{},
+		&entity.Discussion{},
+		&entity.Comment{},
 	)
 	return database
 }
