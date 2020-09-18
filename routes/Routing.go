@@ -1,8 +1,12 @@
 package routes
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/labstack/echo"
 	"github.com/scafol/KP-Backend/controller"
+	"github.com/scafol/KP-Backend/utils"
 )
 
 type Routing struct {
@@ -16,6 +20,9 @@ type Routing struct {
 
 func (Routing Routing) GetRoutes() *echo.Echo {
 	e := echo.New()
+
+	e.Use(MiddlewareLogging)
+	e.HTTPErrorHandler = HandleError
 
 	e.GET("/posts/", Routing.example.GetPostsController)
 
@@ -49,4 +56,21 @@ func (Routing Routing) GetRoutes() *echo.Echo {
 	e.POST("/upload", Routing.upload.Uploader)
 	e.POST("/uploads", Routing.upload.Uploaders)
 	return e
+}
+
+func MiddlewareLogging(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		utils.MakeLogs(c).Info("incoming request")
+		return next(c)
+	}
+}
+
+func HandleError(err error, c echo.Context) {
+	report, ok := err.(*echo.HTTPError)
+	if ok {
+		report.Message = fmt.Sprintf("http error %d - %v", report.Code, report.Message)
+	} else {
+		report = echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	utils.MakeLogs(c).Error(report.Message)
 }

@@ -8,6 +8,7 @@
 - [gorm](https://gorm.io/)
 - [gorm postgres driver](http://gorm.io/driver/postgres)
 - [godotenv](https://github.com/joho/godotenv)
+- [logrus](https://github.com/sirupsen/logrus)
 
 ## Environment variable declaration
 
