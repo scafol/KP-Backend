@@ -103,8 +103,8 @@ func (e *DiscussionModel) GetDiscussionSecondByDiscussionFirstId(id int) (*[]ent
 	return &discussionSecond, nil
 }
 
-func (e *DiscussionModel) AddFileDiscussion(file *entity.Files) (*entity.Files, error) {
-	err := e.db.GetDatabaseConfig().Save(&file).Error
+func (e *DiscussionModel) AddFileDiscussion(file *entity.Files, tx *gorm.DB) (*entity.Files, error) {
+	err := tx.Save(&file).Error
 	if err != nil {
 		fmt.Printf("[DiscussionModel.AddFileDiscussion] error execute query %v \n", err)
 		return nil, fmt.Errorf("failed to add file to discussion")
@@ -112,8 +112,8 @@ func (e *DiscussionModel) AddFileDiscussion(file *entity.Files) (*entity.Files, 
 	return file, nil
 }
 
-func (e *DiscussionModel) AddImageDiscussion(image *entity.Images) (*entity.Images, error) {
-	err := e.db.GetDatabaseConfig().Save(&image).Error
+func (e *DiscussionModel) AddImageDiscussion(image *entity.Images, tx *gorm.DB) (*entity.Images, error) {
+	err := tx.Save(&image).Error
 	if err != nil {
 		fmt.Printf("[DiscussionModel.AddImageDiscussion] error execute query %v \n", err)
 		return nil, fmt.Errorf("failed to add image to discussion")

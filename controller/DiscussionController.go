@@ -5,20 +5,17 @@ import (
 	"Golang-Echo-MVC-Pattern/model"
 	"Golang-Echo-MVC-Pattern/utils"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/labstack/echo"
-	"github.com/spf13/viper"
-	"github.com/xlzd/gotp"
 )
 
 type DiscussionController struct {
-	discussionModel model.DiscussionModel
-	userModel       model.UserModel
-	catagoryModel   model.CatagoryModel
+	discussionModel  model.DiscussionModel
+	userModel        model.UserModel
+	catagoryModel    model.CatagoryModel
+	uploadController UploadController
 }
 
 func (e *DiscussionController) AddDiscussion(c echo.Context) error {
@@ -225,82 +222,19 @@ func (e *DiscussionController) AddDiscussionSecond(c echo.Context) error {
 	return utils.HandleSuccess(c, output)
 }
 
-func UploadImages(c echo.Context) ([]string, error) {
-	form, err := c.MultipartForm()
-	if err != nil {
-		fmt.Printf("[DiscussionController.UploadImage] error inisiasi multipartform %v \n", err)
-		return nil, err
-	}
-	images := form.File["images"]
-	var partImages []string
-	for _, image := range images {
-		src, err := image.Open()
-		if err != nil {
-			fmt.Printf("[DiscussionController.UploadImage] error open image %v \n", err)
-			return nil, err
-		}
-		defer src.Close()
-		name := gotp.RandomSecret(10)
-		part := viper.GetString("asset.images") + name + ".jpeg"
-		dts, err := os.Create(part)
-		if err != nil {
-			fmt.Printf("[DiscussionController.UploadImage] error create image %v \n", err)
-			return nil, err
-		}
-		defer dts.Close()
-		_, err = io.Copy(dts, src)
-		if err != nil {
-			fmt.Printf("[DiscussionController.UploadImage] error copy image %v \n", err)
-			return nil, err
-		}
-		partImages = append(partImages, part)
-	}
-	return partImages, nil
-}
-
-func UploadFiles(c echo.Context) ([]string, error) {
-	form, err := c.MultipartForm()
-	if err != nil {
-		fmt.Printf("[DiscussionController.UploadFiles] error inisiasi multipartform %v \n", err)
-		return nil, err
-	}
-	files := form.File["files"]
-	var partFiles []string
-	for _, file := range files {
-		src, err := file.Open()
-		if err != nil {
-			fmt.Printf("[DiscussionController.UploadFiles] error Open file %v \n", err)
-			return nil, err
-		}
-		defer src.Close()
-		part := viper.GetString("asset.files") + file.Filename
-		dts, err := os.Create(part)
-		if err != nil {
-			fmt.Printf("[DiscussionController.UploadFiles] error create file %v \n", err)
-			return nil, err
-		}
-		defer dts.Close()
-		_, err = io.Copy(dts, src)
-		if err != nil {
-			fmt.Printf("[DiscussionController.UploadFiles] error copy file %v \n", err)
-			return nil, err
-		}
-		partFiles = append(partFiles, part)
-	}
-	return partFiles, nil
-}
-
 func (e *DiscussionController) AddFilesImagesDiscussion(c echo.Context) error {
 	discussionIdSrt := c.FormValue("discussion_id")
 	discussionId, err := strconv.Atoi(discussionIdSrt)
 	if err != nil {
-		return utils.HandleError(c, http.StatusBadRequest, "discussion id has be number")
+		return utils.HandleError(c, http.StatusBadRequest, "id has be number")
 	}
 	userIdStr := c.FormValue("user_id")
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
 		return utils.HandleError(c, http.StatusBadRequest, "user id has be number")
 	}
+
+	tx := e.discussionModel.BeginTrans()
 
 	discussion, err := e.discussionModel.GetDiscussionById(discussionId)
 	if err != nil {
@@ -310,9 +244,9 @@ func (e *DiscussionController) AddFilesImagesDiscussion(c echo.Context) error {
 	if err != nil {
 		return utils.HandleError(c, http.StatusNotFound, err.Error())
 	}
-	partFiles, err := UploadFiles(c)
+	partFiles, err := e.uploadController.UploadFiles(c)
 	if err != nil {
-		return utils.HandleError(c, http.StatusForbidden, "Failed to upload files")
+		return utils.HandleError(c, http.StatusForbidden, err.Error())
 	}
 	for i := 0; i < len(partFiles); i++ {
 		var res = entity.Files{
@@ -320,14 +254,17 @@ func (e *DiscussionController) AddFilesImagesDiscussion(c echo.Context) error {
 			DiscussionID: uint(discussionId),
 			File:         partFiles[i],
 		}
-		_, err := e.discussionModel.AddFileDiscussion(&res)
+		_, err := e.discussionModel.AddFileDiscussion(&res, tx)
 		if err != nil {
+			utils.RollbackFiles(partFiles)
+			tx.Rollback()
 			return utils.HandleError(c, http.StatusInternalServerError, err.Error())
 		}
 	}
-	partImages, err := UploadImages(c)
+	partImages, err := e.uploadController.UploadImages(c)
 	if err != nil {
-		return utils.HandleError(c, http.StatusForbidden, "Failed to upload images")
+		utils.RollbackFiles(partFiles)
+		return utils.HandleError(c, http.StatusForbidden, err.Error())
 	}
 	for i := 0; i < len(partImages); i++ {
 		var res = entity.Images{
@@ -335,8 +272,11 @@ func (e *DiscussionController) AddFilesImagesDiscussion(c echo.Context) error {
 			DiscussionID: uint(discussionId),
 			Image:        partImages[i],
 		}
-		_, err := e.discussionModel.AddImageDiscussion(&res)
+		_, err := e.discussionModel.AddImageDiscussion(&res, tx)
 		if err != nil {
+			utils.RollbackFiles(partFiles)
+			utils.RollbackFiles(partImages)
+			tx.Rollback()
 			return utils.HandleError(c, http.StatusInternalServerError, err.Error())
 		}
 	}
@@ -349,6 +289,7 @@ func (e *DiscussionController) AddFilesImagesDiscussion(c echo.Context) error {
 		Images:  partImages,
 		Files:   partFiles,
 	}
+	tx.Commit()
 	return utils.HandleSuccess(c, discussionPost)
 }
 
@@ -386,7 +327,7 @@ func (e *DiscussionController) DeleteDiscussionById(c echo.Context) error {
 	if err != nil {
 		return utils.HandleError(c, http.StatusNotFound, err.Error())
 	}
-	var partFiles []string 
+	var partFiles []string
 	for i := 0; i < len(*discussionFiles); i++ {
 		partFiles = append(partFiles, (*discussionFiles)[i].File)
 	}
